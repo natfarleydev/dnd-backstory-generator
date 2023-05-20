@@ -1,16 +1,10 @@
 import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react'
-import Button from '../components/Button'
-import ClickCount from '../components/ClickCount'
-import styles from '../styles/home.module.css'
-import { AppBar, Autocomplete, Box, TextField, Typography } from '@mui/material';
-
-// function throwError() {
-//   console.log(
-//     // The function body() is not defined
-//     document.body()
-//   )
-// }
+import { AppBar, Autocomplete, Box, Button, TextField, Typography, useTheme } from '@mui/material';
+import { Toolbar } from '@mui/material';
+import axios from "axios";
+import { GPTPrompt, createCharacterSummaryPrompt } from './gptPrompts';
+import { ReactMarkdown } from 'react-markdown';
 
 const levelOptions: readonly string[] = [
   'Level 1'
@@ -19,8 +13,7 @@ const levelOptions: readonly string[] = [
 const raceOptions: readonly string[] = [
   'Human',
   'Elf',
-  'Dwarf',
-  'Draug'
+  'Dwarf'
 ] as const
 
 const classOptions: readonly string[] = [
@@ -29,6 +22,15 @@ const classOptions: readonly string[] = [
   'Sorcerer'
 ] as const
 
+
+const queryGPT = (token: string, body: GPTPrompt) => axios.post("https://api.openai.com/v1/chat/completions",
+  body,
+  {
+    headers: {
+      "Authorization": "Bearer " + token
+    }
+  }
+)
 
 function Home() {
   const [count, setCount] = useState(0)
@@ -51,10 +53,55 @@ function Home() {
   const [race, setRace] = useState<string | null>(raceOptions[0])
   const [class_, setClass] = useState<string | null>(classOptions[0])
 
+  const [apiIsGood, setAPIIsGood] = useState<number>(0)
+
+  const [openAIAPIToken, setopenAIAPIToken] = useState<string>(() => "")
+
+  const [gptResponse, setGPTResponse] = useState<string>("")
+
+  useEffect(() => setopenAIAPIToken(localStorage.getItem("openAIAPIToken")), [])
+
+  useEffect(() => localStorage.setItem("openAIAPIToken", openAIAPIToken), [openAIAPIToken])
+
+  useEffect(() => {
+    queryGPT(openAIAPIToken, {
+      "model": "gpt-3.5-turbo",
+      "messages": [{
+        "role": "user",
+        "content": "OK."
+      }]
+    }).then(_ => {
+      setAPIIsGood(1)
+    }).catch(_ => {
+      setAPIIsGood(-1)
+    })
+  }, [openAIAPIToken])
+
+  const theme = useTheme()
+
+
+
   return (
     <Box>
       {/* TODO style the app bar properly */}
-      <AppBar>AppBar</AppBar>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            D&D backstory generator
+          </Typography>
+          <Box>
+            {apiIsGood}
+            <TextField
+              sx={{
+                backgroundColor: theme.palette.background.paper
+              }}
+              value={openAIAPIToken}
+              type="password"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setopenAIAPIToken(e.target.value)}
+              label="OpenAI API key" />
+          </Box>
+        </Toolbar>
+      </AppBar>
       <Box
         sx={{
           width: '75%',
@@ -96,11 +143,27 @@ function Home() {
             sx={{ width: 300 }}
             renderInput={(params) => <TextField {...params} label="Class" />}
           />
+          <Button onClick={async () => {
+            setGPTResponse("loading...")
+            const resp = await queryGPT(
+              openAIAPIToken,
+              createCharacterSummaryPrompt({level, race, class: class_})
+            )
+
+              setGPTResponse(resp.data?.choices?.[0]?.message?.content)
+
+
+           }}>
+            Generate
+          </Button>
         </Box>
         <Box>
 
           this box will generate a <Typography sx={{ color: 'red' }}>{level} {race} {class_}</Typography>
 
+        </Box>
+        <Box>
+          <ReactMarkdown>{gptResponse}</ReactMarkdown>
         </Box>
       </Box>
 
