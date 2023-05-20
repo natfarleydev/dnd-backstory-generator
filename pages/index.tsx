@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { AppBar, Autocomplete, Box, Button, TextField, Typography, useTheme } from '@mui/material';
 import { Toolbar } from '@mui/material';
 import axios from "axios";
-import { GPTPrompt, createCharacterSummaryPrompt } from './gptPrompts';
-import { ReactMarkdown } from 'react-markdown';
+import { GPTPrompt, createCharacterSummaryPrompt } from './gptPrompts.tsx';
+import ReactMarkdown from 'react-markdown';
 
 const levelOptions: readonly string[] = [
   'Level 1'
@@ -33,20 +33,20 @@ const queryGPT = (token: string, body: GPTPrompt) => axios.post("https://api.ope
 )
 
 function Home() {
-  const [count, setCount] = useState(0)
-  const increment = useCallback(() => {
-    setCount((v) => v + 1)
-  }, [setCount])
+  // const [count, setCount] = useState(0)
+  // const increment = useCallback(() => {
+  //   setCount((v) => v + 1)
+  // }, [setCount])
 
-  useEffect(() => {
-    const r = setInterval(() => {
-      increment()
-    }, 1000)
+  // useEffect(() => {
+  //   const r = setInterval(() => {
+  //     increment()
+  //   }, 1000)
 
-    return () => {
-      clearInterval(r)
-    }
-  }, [increment])
+  //   return () => {
+  //     clearInterval(r)
+  //   }
+  // }, [increment])
 
   // TODO type the level, race and class
   const [level, setLevel] = useState<string | null>(levelOptions[0])
@@ -114,7 +114,10 @@ function Home() {
           sx={{
             flex: 1,
             display: 'flex',
-            flexDirection: 'row',
+            flexDirection: {
+              xs: 'column',
+              md: 'row'
+            },
             width: 1
           }}
         >
@@ -143,7 +146,7 @@ function Home() {
             sx={{ width: 300 }}
             renderInput={(params) => <TextField {...params} label="Class" />}
           />
-          <Button onClick={async () => {
+          <Button variant='contained' onClick={async () => {
             setGPTResponse("loading...")
             const resp = await queryGPT(
               openAIAPIToken,
